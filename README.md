@@ -1,230 +1,167 @@
-# Análise de Liquidez para Pair Trading - Mercado Brasileiro
+# Pair Trading Brasil - Pipeline Quantitativo Completo
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![Pandas](https://img.shields.io/badge/Pandas-2.0+-green.svg)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)
+![Status](https://img.shields.io/badge/Status-Em_Desenvolvimento-yellow.svg)
 
 ## 📊 Visão Geral
 
-Sistema de análise de liquidez para identificação das ações mais líquidas da **B3 (Brasil, Bolsa, Balcão)** com foco em estratégias de **pair trading**. O projeto processa dados históricos do formato COTAHIST e gera rankings de liquidez baseados em múltiplas métricas quantitativas.
-
-### 🏦 Contexto Institucional
-- **Organização:** Itaú
-- **Mercado:** Bolsa de Valores Brasileira (B3)
-- **Domínio:** Análise Quantitativa e Trading Algorítmico
-- **Objetivo:** Identificar pares de ações para estratégias de arbitragem
-
-## 🎯 Funcionalidades Principais
-
-### ✅ Análise de Liquidez Multifatorial
-- **Volume médio diário** - Capacidade de absorção de grandes ordens
-- **Frequência de negociação** - Consistência de presença no mercado
-- **Número de negócios** - Atividade e interesse do mercado
-- **Score de consistência** - Regularidade ao longo do período
-
-### ✅ Filtros de Qualidade
-- ✅ Apenas ações ordinárias e preferenciais (BDI 02)
-- ✅ Mercado à vista (tipo 010)
-- ✅ Exclusão de ETFs, Units e BDRs
-- ✅ Validação de padrões de ticker brasileiros
-- ✅ Filtros mínimos de volume e frequência
-
-### ✅ Processamento de Dados Robusto
-- ✅ Suporte a múltiplos anos de dados COTAHIST
-- ✅ Parsing de formato fixed-width do B3
-- ✅ Tratamento de erros e validação de dados
-- ✅ Logs informativos de progresso
-
-### ✅ Saídas Estruturadas
-- ✅ **CSV completo** com todas as métricas calculadas
-- ✅ **Lista de tickers** para integração com outros sistemas
-- ✅ **Ranking Top 100** das ações mais líquidas
-- ✅ Formato compatível com ferramentas de análise brasileiras
-
-## 🏗️ Arquitetura
-
-```
-pair-trading/
-├── .claude/                    # Contexto do projeto e memória de sessão
-├── test.py                     # Script principal de análise
-├── COTAHIST_A2014.TXT         # Dados B3 - ano 2014
-├── COTAHIST_A2015.TXT         # Dados B3 - ano 2015
-├── COTAHIST_A2016.TXT         # Dados B3 - ano 2016
-└── README.md                  # Este arquivo
-```
-
-### 🔄 Fluxo de Dados
-```
-COTAHIST (Raw) → Parse & Filter → Liquidity Analysis → Ranking → CSV Output
-```
-
-## 🚀 Instalação e Uso
-
-### Pré-requisitos
-```bash
-Python 3.8+
-pandas
-numpy
-```
-
-### Instalação
-```bash
-pip install pandas numpy
-```
-
-### Estrutura de Dados Esperada
-Coloque os arquivos COTAHIST no mesmo diretório do script:
-```
-COTAHIST_A2014.TXT  # Dados históricos B3 - 2014
-COTAHIST_A2015.TXT  # Dados históricos B3 - 2015
-```
-
-### Execução
-```bash
-python test.py
-```
-
-### Saídas Geradas
-```
-top_100_acoes_liquidas_2014_2015_completo.csv  # Dataset completo
-top_100_acoes_liquidas_2014_2015_tickers.txt   # Lista de tickers
-```
-
-## 📈 Metodologia de Análise
-
-### Score de Liquidez
-O ranking é baseado em um **score composto** com os seguintes pesos:
-
-| Métrica | Peso | Descrição |
-|---------|------|-----------|
-| **Volume Médio Diário** | 40% | Capacidade de absorção de ordens grandes |
-| **Negócios Médios Diários** | 30% | Atividade e interesse do mercado |
-| **Frequência de Negociação** | 20% | Consistência de presença |
-| **Score de Consistência** | 10% | Regularidade ao longo do período |
-
-### Filtros de Qualidade
-
-#### Filtros de Validação de Ações
-- **BDI 02:** Apenas ações ordinárias e preferenciais
-- **Tipo de Mercado 010:** Mercado à vista (spot market)
-- **Padrão de Ticker:** Regex `^[A-Z]{4}[34568]$|^[A-Z]{5}[34568]$`
-- **Exclusões:** ETFs (terminam em 11), BDRs conhecidos
-
-#### Filtros de Liquidez Mínima
-- **Volume Médio:** R$ 500.000/dia mínimo
-- **Frequência:** 80% dos dias úteis mínimo
-- **Dias Negociados:** 100 dias mínimo no período
-
-### Período de Análise
-- **Anos:** 2014-2015 (período de formação)
-- **Dias Úteis:** ~504 dias (252 por ano)
-- **Dados:** Preços de fechamento, volumes, número de negócios
-
-## 📊 Exemplo de Resultados
-
-### Top 5 Ações Mais Líquidas (2014-2015)
-| Ranking | Ticker | Nome | Volume Médio/Dia | Frequência |
-|---------|--------|------|------------------|------------|
-| 1 | PETR4 | PETROBRAS | R$ 651M | 98% |
-| 2 | ITUB4 | ITAUUNIBANCO | R$ 446M | 98% |
-| 3 | VALE5 | VALE | R$ 363M | 98% |
-| 4 | BBDC4 | BRADESCO | R$ 283M | 98% |
-| 5 | PETR3 | PETROBRAS | R$ 226M | 98% |
-
-## 🔧 Configuração Avançada
-
-### Customização de Períodos
-Para analisar diferentes períodos, modifique a variável `file_paths` em `main()`:
-```python
-# Exemplo: Análise apenas 2015
-file_paths = ['COTAHIST_A2015.TXT']
-periodo_str = "2015"
-
-# Exemplo: Análise 2014-2016
-file_paths = ['COTAHIST_A2014.TXT', 'COTAHIST_A2015.TXT', 'COTAHIST_A2016.TXT']
-periodo_str = "2014_2016"
-```
-
-### Ajuste de Filtros
-Modifique os filtros mínimos na função `analyze_cotahist_liquidity()`:
-```python
-if (metrics['volume_medio_diario'] < 500000 or    # Volume mínimo
-    metrics['frequencia_negociacao'] < 0.8 or     # Frequência mínima
-    metrics['dias_negociados'] < 100):            # Dias mínimos
-```
-
-### Personalização de Pesos
-Ajuste os pesos do score na função `calculate_liquidity_score()`:
-```python
-peso_volume = 0.4        # 40% - Volume
-peso_negocios = 0.3      # 30% - Atividade
-peso_frequencia = 0.2    # 20% - Frequência  
-peso_consistencia = 0.1  # 10% - Consistência
-```
-
-## 📁 Formato dos Dados
-
-### Arquivo COTAHIST (Input)
-- **Formato:** Fixed-width text file
-- **Encoding:** Latin-1 (ISO-8859-1)
-- **Tamanho:** ~50MB por ano
-- **Estrutura:** Baseada na especificação oficial B3
-
-### CSV de Saída (Output)
-- **Separador:** Ponto e vírgula (`;`)
-- **Decimal:** Vírgula (`,`)
-- **Encoding:** UTF-8 com BOM
-- **Headers:** Em português para compatibilidade local
-
-## ⚠️ Considerações Importantes
-
-### Performance
-- **Memória:** Arquivos COTAHIST são grandes (>50MB)
-- **Processamento:** Pode levar alguns minutos dependendo do hardware
-- **Logs:** Progresso exibido a cada 100.000 linhas processadas
-
-### Qualidade dos Dados
-- **Normalização:** Preços divididos por 100 conforme padrão B3
-- **Validação:** Múltiplas camadas de filtros para garantir qualidade
-- **Consistência:** Dados validados contra padrões conhecidos do mercado
-
-### Limitações
-- **Dados Históricos:** Análise baseada apenas em dados passados
-- **Liquidez Intraday:** Não considera padrões intraday de liquidez
-- **Custos de Transação:** Não inclui spreads ou custos operacionais
-- **Eventos Corporativos:** Não ajusta para splits, bonificações, etc.
-
-## 🛠️ Desenvolvimento
-
-### Padrões de Código
-- **Idioma:** Documentação em português (contexto brasileiro)
-- **Estilo:** PEP 8 com adaptações para domínio financeiro
-- **Funções:** Documentadas com docstrings detalhadas
-- **Naming:** Snake_case descritivo
-
-### Estrutura de Funções
-```python
-parse_cotahist_line()        # Parser de linha fixed-width
-is_valid_stock()             # Validação de ações
-calculate_liquidity_metrics() # Cálculo de métricas
-calculate_liquidity_score()   # Score composto
-analyze_cotahist_liquidity()  # Função principal
-main()                       # Ponto de entrada
-```
-
-## 📞 Suporte e Contato
-
-Para questões técnicas ou sugestões de melhoria:
-- **Contexto:** Projeto interno Itaú
-- **Domínio:** Análise quantitativa de mercado brasileiro
-- **Stack:** Python/Pandas para processamento de dados financeiros
-
-## 📜 Licença
-
-Projeto proprietário - Itaú Unibanco
+Pipeline quantitativo para seleção, análise e simulação de estratégias de **pair trading** no mercado brasileiro (B3), utilizando dados históricos COTAHIST e múltiplos filtros estatísticos. O projeto é modular, com cada fase documentada e scripts separados para facilitar manutenção e evolução.
 
 ---
 
-**Versão:** 1.0  
+## 🗂️ Fases do Projeto
+
+### **Fase 1: Universo de Ativos e Coleta de Dados**
+- **Objetivo:** Definir o universo de ações negociadas e selecionar as 100 mais líquidas dos 2 anos anteriores.
+- **Scripts:** `data_collection.py`, `test.py`
+- **Principais etapas:**
+  1. Coleta de todos os ativos do B3 via arquivos COTAHIST.
+  2. Filtro para manter apenas ações (exclui ETFs, BDRs, units, etc).
+  3. Seleção de ações negociadas em pelo menos 98% dos dias úteis (~504 dias).
+  4. Cálculo de métricas de liquidez:
+     - Volume médio diário
+     - Número médio de negócios por dia
+     - Frequência de negociação
+     - Consistência (dias negociados/504)
+  5. Filtros mínimos:
+     - Volume > R$ 500k/dia
+     - Frequência > 80%
+     - Mínimo 100 dias negociados
+  6. Score composto: `Score = 0.4*Volume + 0.3*Negócios + 0.2*Frequência + 0.1*Consistência`
+  7. Seleção das 100 ações mais líquidas.
+- **Saídas:**
+  - `top_100_acoes_liquidas_2014_2015_completo.csv`
+  - `top_100_acoes_liquidas_2014_2015_tickers.txt`
+
+---
+
+### **Fase 2: Análise Estatística e Seleção de Pares**
+- **Objetivo:** Encontrar pares de ações cointegrados e com características favoráveis para reversão à média.
+- **Scripts:** `cointegration_test.py`, `hurst_filter.py`, `cross_mean.py`
+- **Principais etapas:**
+  1. **Busca por Cointegração:**
+     - Testa todas as combinações de pares possíveis entre as 100 ações.
+     - Aplica o teste de cointegração de Engle-Granger.
+     - Seleciona pares com p-valor < 0.05.
+  2. **Filtro de Reversão à Média:**
+     - Calcula o expoente de Hurst do spread de cada par cointegrado.
+     - Mantém apenas pares com Hurst < 0.5 (característica de reversão).
+  3. **Filtro de Frequência de Cruzamento da Média:**
+     - Conta quantas vezes o spread cruzou sua própria média histórica.
+     - Mantém apenas pares com pelo menos 24 cruzamentos em 2 anos (12/ano).
+- **Saídas:**
+  - `pares_filtrados_hurst_2014_2015.csv` (após filtro de Hurst)
+  - `pares_finais_selecionados_2014_2015.csv` (após todos os filtros)
+
+---
+
+### **Fase 3: Modelagem da Estratégia e Geração de Sinais**
+- **Objetivo:** Definir regras de entrada/saída e gerar sinais de trading para o melhor par selecionado.
+- **Principais etapas:**
+  1. Selecionar o par com menor p-valor de cointegração.
+  2. Calcular e normalizar o spread (Z-Score).
+  3. Definir sinais de entrada (Z > +2 ou Z < -2) e saída (Z cruza 0).
+- **Status:** _A implementar_
+
+---
+
+### **Fase 4: Backtesting da Estratégia**
+- **Objetivo:** Simular operações no período fora da amostra e calcular retornos.
+- **Principais etapas:**
+  1. Dividir dados em in-sample/out-of-sample.
+  2. Simular operações com base nos sinais.
+  3. Calcular retorno diário e curva de capital.
+- **Status:** _A implementar_
+
+---
+
+### **Fase 5: Avaliação de Performance e Visualização**
+- **Objetivo:** Avaliar risco/retorno e visualizar resultados.
+- **Principais etapas:**
+  1. Calcular métricas: Retorno total, anualizado, volatilidade, Sharpe, drawdown.
+  2. Gerar gráficos do spread, sinais e curva de capital.
+  3. Analisar resultados e discutir próximos passos (ex: múltiplos pares, machine learning).
+- **Status:** _A implementar_
+
+---
+
+## 🧩 Scripts e Funções Principais
+
+### `data_collection.py` / `test.py`
+- `parse_cotahist_line()` — Parser linha a linha do COTAHIST
+- `is_valid_stock()` — Filtro de ações válidas
+- `calculate_liquidity_metrics()` — Métricas de liquidez
+- `calculate_liquidity_score()` — Score composto
+- `analyze_cotahist_liquidity()` — Função principal de análise
+
+### `cointegration_test.py`
+- `testar_cointegracao()` — Testa Engle-Granger para todos os pares
+- `salvar_pares_cointegrados()` — Salva pares cointegrados
+
+### `hurst_filter.py`
+- `calcular_hurst()` — Calcula expoente de Hurst do spread
+- `filtrar_pares_hurst()` — Filtra pares com Hurst < 0.5
+
+### `cross_mean.py`
+- `contar_cruzamentos_media()` — Conta cruzamentos do spread com a média
+- `aplicar_filtro_frequencia()` — Filtra pares com cruzamentos suficientes
+
+---
+
+## 📁 Estrutura de Diretórios
+
+```
+pair-trading/
+├── data_collection.py
+├── test.py
+├── cointegration_test.py
+├── hurst_filter.py
+├── cross_mean.py
+├── COTAHIST_A2014.TXT
+├── COTAHIST_A2015.TXT
+├── ...
+```
+
+---
+
+## 🚀 Como Usar
+
+1. **Coleta e filtro de liquidez:**
+   ```bash
+   python data_collection.py
+   # ou
+   python test.py
+   ```
+2. **Teste de cointegração:**
+   ```bash
+   python cointegration_test.py
+   ```
+3. **Filtro de Hurst:**
+   ```bash
+   python hurst_filter.py
+   ```
+4. **Filtro de cruzamento de média:**
+   ```bash
+   python cross_mean.py
+   ```
+
+---
+
+## 📈 Metodologia Resumida
+
+- **Liquidez:** Score multifatorial, top 100 ações negociadas em 98% dos dias.
+- **Cointegração:** Engle-Granger, p < 0.05.
+- **Reversão:** Hurst < 0.5.
+- **Frequência:** Mínimo 24 cruzamentos do spread com a média em 2 anos.
+- **Sinais:** Z-Score do spread, thresholds ±2 para entrada, 0 para saída.
+
+---
+
+## 📜 Licença
+Projeto proprietário - Itaú Unibanco
+
+---
+**Versão:** 1.1  
 **Última Atualização:** Setembro 2025  
 **Compatibilidade:** Python 3.8+, Pandas 2.0+
