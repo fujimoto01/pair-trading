@@ -118,82 +118,7 @@ class DataCollector:
         
         return True
     
-    def calculate_liquidity_metrics(self, df_stock: pd.DataFrame) -> Optional[Dict[str, float]]:
-        """
-        Calcula métricas de liquidez para uma ação específica.
-        
-        Args:
-            df_stock: DataFrame com dados de uma ação específica
-            
-        Returns:
-            Dicionário com métricas de liquidez ou None se inválido
-        """
-        # Filtrar apenas dias com negociação
-        df_traded = df_stock[df_stock['volume_financeiro'] > 0].copy()
-        
-        if len(df_traded) == 0:
-            return None
-        
-        # Buscar configurações
-        business_days = self.config.get('liquidity.selection.business_days_period', 504)
-        
-        # Calcular métricas básicas
-        volume_medio_diario = df_traded['volume_financeiro'].mean()
-        negocios_medio_diario = df_traded['numero_negocios'].mean()
-        
-        # Frequência de negociação
-        frequencia_negociacao = len(df_traded) / business_days
-        
-        # Volume total no período
-        volume_total_periodo = df_traded['volume_financeiro'].sum()
-        
-        # Quantidade média de títulos por negócio
-        total_negocios = df_traded['numero_negocios'].sum()
-        if total_negocios > 0:
-            titulos_por_negocio = df_traded['quantidade_titulos'].sum() / total_negocios
-        else:
-            titulos_por_negocio = 0
-        
-        return {
-            'volume_medio_diario': volume_medio_diario,
-            'negocios_medio_diario': negocios_medio_diario,
-            'frequencia_negociacao': frequencia_negociacao,
-            'volume_total_periodo': volume_total_periodo,
-            'dias_negociados': len(df_traded),
-            'titulos_por_negocio': titulos_por_negocio
-        }
-    
-    def calculate_liquidity_score(self, metrics: Dict[str, float]) -> float:
-        """
-        Calcula score de liquidez combinando múltiplas métricas.
-        
-        Args:
-            metrics: Dicionário com métricas de liquidez
-            
-        Returns:
-            Score de liquidez calculado
-        """
-        # Buscar pesos das configurações
-        weights = self.config.get('liquidity.score_weights', {
-            'volume': 0.4, 'trades': 0.3, 'frequency': 0.2, 'consistency': 0.1
-        })
-        
-        business_days = self.config.get('liquidity.selection.business_days_period', 504)
-        
-        # Normalização será feita depois no ranking
-        volume_score = metrics['volume_medio_diario']
-        negocios_score = metrics['negocios_medio_diario']
-        frequencia_score = metrics['frequencia_negociacao']
-        consistencia_score = min(metrics['dias_negociados'] / business_days, 1.0)
-        
-        # Score bruto (será normalizado depois)
-        score = (weights['volume'] * volume_score + 
-                weights['trades'] * negocios_score + 
-                weights['frequency'] * frequencia_score * 1000000 +  # Ajuste de escala
-                weights['consistency'] * consistencia_score * 1000000)  # Ajuste de escala
-        
-        return score
-    
+   
     def load_cotahist_files(self, file_paths: List[str]) -> pd.DataFrame:
         """
         Carrega e processa arquivos COTAHIST.
@@ -292,9 +217,6 @@ class DataCollector:
         selection_config = liquidity_config.get('selection', {})
         
         top_n = selection_config.get('top_n_stocks', 100)
-        min_volume = selection_config.get('min_daily_volume', 500000)
-        min_frequency = selection_config.get('min_trading_frequency', 0.8)
-        min_days = selection_config.get('min_trading_days', 100)
         
         liquidity_results = []
         unique_tickers = df['codigo_negociacao'].unique()
@@ -303,20 +225,8 @@ class DataCollector:
             for codigo in unique_tickers:
                 df_stock = df[df['codigo_negociacao'] == codigo]
                 
-                # Calcular métricas
-                metrics = self.calculate_liquidity_metrics(df_stock)
-                
-                if metrics is None:
-                    continue
-                
-                # Filtros mínimos de liquidez
-                if (metrics['volume_medio_diario'] < min_volume or
-                    metrics['frequencia_negociacao'] < min_frequency or
-                    metrics['dias_negociados'] < min_days):
-                    continue
-                
-                # Calcular score
-                score = self.calculate_liquidity_score(metrics)
+                # Substituido por cálculo simplificado do score
+                score = df_stock['volume_financeiro'].mean()
                 
                 # Informações adicionais da ação
                 sample_row = df_stock.iloc[0]
@@ -324,11 +234,6 @@ class DataCollector:
                 result = {
                     'ticker': codigo,
                     'nome_resumido': sample_row['nome_resumido'],
-                    'volume_medio_diario': metrics['volume_medio_diario'],
-                    'negocios_medio_diario': metrics['negocios_medio_diario'],
-                    'frequencia_negociacao': metrics['frequencia_negociacao'],
-                    'volume_total_periodo': metrics['volume_total_periodo'],
-                    'dias_negociados': metrics['dias_negociados'],
                     'score_liquidez': score
                 }
                 
