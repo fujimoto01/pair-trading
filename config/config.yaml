@@ -1,0 +1,180 @@
+# Configurações do Pipeline de Pair Trading
+# ==========================================
+
+# Configurações de Dados
+data:
+  # Período de análise (anos dos arquivos COTAHIST)
+  years: [2014, 2015]
+  
+  # Arquivos COTAHIST (em diretório data/)
+  cotahist_files:
+    - "data/COTAHIST_A2014.TXT"
+    - "data/COTAHIST_A2015.TXT"
+  
+  # Configurações de codificação
+  encoding: "latin-1"
+  
+  # Formato de saída
+  output:
+    separator: ";"
+    decimal: ","
+    encoding_out: "utf-8-sig"
+    
+    # Diretórios organizados para outputs
+    directories:
+      base: "outputs"
+      liquidity: "outputs/01_liquidity"
+      price_matrix: "outputs/02_price_matrix" 
+      cointegration: "outputs/03_cointegration"
+      filtered_pairs: "outputs/04_filtered_pairs"
+      final_results: "outputs/05_final_results"
+      
+  # Diretório para arquivos de dados de entrada
+  input_directory: "data"
+
+# Configurações de Liquidez
+liquidity:
+  # Critérios de seleção de ações
+  selection:
+    # Número de ações mais líquidas a selecionar
+    top_n_stocks: 100
+    
+    # Volume mínimo diário (R$)
+    min_daily_volume: 500000
+    
+    # Frequência mínima de negociação (% dos dias)
+    min_trading_frequency: 0.8
+    
+    # Número mínimo de dias negociados
+    min_trading_days: 100
+    
+    # Dias úteis estimados no período (para cálculo de frequência)
+    business_days_period: 504
+  
+  # Pesos para cálculo do score de liquidez
+  score_weights:
+    volume: 0.4
+    trades: 0.3
+    frequency: 0.2
+    consistency: 0.1
+
+# Configurações de Análise Estatística
+analysis:
+  # Teste de cointegração
+  cointegration:
+    # Nível de significância (p-valor máximo)
+    significance_level: 0.05
+    
+    # Método de teste
+    method: "engle_granger"
+  
+  # Análise de Hurst
+  hurst:
+    # Expoente de Hurst máximo (para reversão à média)
+    max_hurst_exponent: 0.5
+    
+    # Método de cálculo
+    method: "rs"  # Rescaled Range
+  
+  # Análise de cruzamento da média
+  cross_mean:
+    # Número mínimo de cruzamentos em 2 anos
+    min_crossings_2y: 24
+    
+    # Número mínimo de cruzamentos por ano
+    min_crossings_per_year: 12
+
+# Configurações de Estratégia
+strategy:
+  # Parâmetros do Z-Score
+  zscore:
+    # Thresholds para entrada
+    entry_threshold: 2.0
+    
+    # Threshold para saída
+    exit_threshold: 0.0
+    
+    # Janela para cálculo da média móvel
+    lookback_window: 252  # 1 ano de dados
+  
+  # Configurações de posição
+  position:
+    # Capital inicial (R$)
+    initial_capital: 100000
+    
+    # Tamanho máximo da posição (% do capital)
+    max_position_size: 0.1
+    
+    # Custos de transação (% por operação)
+    transaction_cost: 0.001
+
+# Configurações de Backtesting
+backtesting:
+  # Divisão dos dados
+  data_split:
+    # Percentual para in-sample (treinamento)
+    in_sample_pct: 0.7
+    
+    # Percentual para out-sample (teste)
+    out_sample_pct: 0.3
+  
+  # Configurações de execução
+  execution:
+    # Delay de execução (dias)
+    execution_delay: 1
+    
+    # Slippage (% do preço)
+    slippage: 0.0005
+
+# Configurações de Performance
+performance:
+  # Métricas a calcular
+  metrics:
+    - "total_return"
+    - "annualized_return"
+    - "volatility"
+    - "sharpe_ratio"
+    - "max_drawdown"
+    - "win_rate"
+    - "profit_factor"
+  
+  # Benchmark para comparação
+  benchmark: "IBOV"  # Ibovespa
+  
+  # Taxa livre de risco (% ao ano)
+  risk_free_rate: 0.1075  # CDI aproximado
+
+# Configurações de Processamento
+processing:
+  # Configurações de memória
+  memory:
+    # Processar em chunks para arquivos grandes
+    use_chunks: true
+    
+    # Tamanho do chunk (número de linhas)
+    chunk_size: 10000
+    
+    # Usar cache para resultados intermediários
+    use_cache: true
+  
+  # Configurações de paralelismo
+  parallel:
+    # Usar processamento paralelo
+    enabled: false
+    
+    # Número de cores (auto = detectar automaticamente)
+    n_cores: "auto"
+
+# Configurações de Logging
+logging:
+  # Nível de log
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  
+  # Formato do log
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Arquivo de log (opcional)
+  file: null
+  
+  # Mostrar progress bars
+  show_progress: true
