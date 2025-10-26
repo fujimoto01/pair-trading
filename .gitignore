@@ -123,3 +123,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Project specific - Heavy data files
+data/
+outputs/
+*.TXT
+*.ZIP
