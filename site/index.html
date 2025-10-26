@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pair Trading - Estratégia Quantitativa</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="context-section reveal">
+        <h2>Projeto de Pesquisa Quantitativa - UFPR</h2>
+        <p>Este trabalho foi desenvolvido pelos alunos <strong>Vitor Fujimoto</strong>, <strong>Diego Lopes</strong> e <strong>Guilherme Verissimo</strong> do curso de <strong>Estatística da Universidade Federal do Paraná (UFPR)</strong>. A pesquisa foi realizada como parte de um projeto de pesquisa quantitativa focado na criação de um robô de investimentos baseado em estratégias de pair trading.</p>
+      </div>
+      
+      <h1 class="main-title">Pair Trading - Estratégia Quantitativa</h1>
+      <p class="subtitle">Robô de investimentos baseado em cointegração e análise estatística avançada</p>
+      <!-- CTA removido: Ver Estratégia -->
+      
+      <!-- Métricas removidas da primeira sessão conforme solicitado -->
+    </div>
+  </section>
+
+  <main>
+    <section id="visao-geral" class="section">
+      <div class="container">
+        <h2>Visão Geral</h2>
+        <p>O pipeline analisa dados históricos oficiais da B3 (COTAHIST), identifica pares de ações que mantêm um relacionamento estável no longo prazo e seleciona os melhores candidatos para uma estratégia de <em>retorno à média</em>. Em seguida, um backtest simula o robô operando esses pares com custos, hedge e controle de risco.</p>
+      </div>
+    </section>
+
+    <section id="pipeline" class="section">
+      <div class="container">
+        <h2>Etapas do Pipeline</h2>
+        <div class="steps">
+          <div class="step">
+            <h3>1) Coleta e Preparação</h3>
+            <p>Leitura dos arquivos COTAHIST (2014–2020), limpeza e montagem de uma matriz de preços diários por ticker.</p>
+          </div>
+          <div class="step">
+            <h3>2) Liquidez</h3>
+            <p>Filtro para manter apenas ações com negociação consistente, garantindo entradas e saídas realistas.</p>
+          </div>
+          <div class="step">
+            <h3>3) Cointegração</h3>
+            <p>Teste de Engle–Granger identifica pares com elo de longo prazo (o “elástico” que puxa de volta). Par é aprovado se o <strong>p-valor</strong> for menor que o limiar configurado.</p>
+          </div>
+          <div class="step">
+            <h3>4) Retorno à Média (Hurst)</h3>
+            <p>Mede se o relacionamento entre o par tende a voltar ao centro (preferido para a estratégia) ou se costuma “caminhar” sem retorno.</p>
+          </div>
+          <div class="step">
+            <h3>5) Cruzamentos da Média</h3>
+            <p>Conta quantas vezes o spread cruza sua média: mais cruzamentos significam mais oportunidades de trade.</p>
+          </div>
+          <div class="step">
+            <h3>6) Dependência de Cauda</h3>
+            <p>Avalia o comportamento do par em extremos (quedas fortes), evitando pares que afundam juntos de forma perigosa.</p>
+          </div>
+          <div class="step">
+            <h3>7) Seleção Final</h3>
+            <p>Combina critérios e ranqueia os melhores pares. O backtest utiliza os <strong>30 primeiros</strong> por <code>mean_crossings</code>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="robô" class="section">
+      <div class="container">
+        <h2>Como o Robô Opera</h2>
+        <ul class="bullets">
+          <li><strong>Entrada:</strong> quando o <em>z-score</em> do spread se afasta muito do normal (limiar de entrada), o robô entra comprado na “barata” e vendido na “cara”, ou o inverso.</li>
+          <li><strong>Saída:</strong> quando o spread volta ao normal (limiar de saída), encerra a operação.</li>
+          <li><strong>Hedge:</strong> calcula a proporção (beta) para neutralizar movimentos gerais do mercado.</li>
+          <li><strong>Risco:</strong> limita o tamanho da posição, considera custos de transação e derrapagem (slippage) e pode aplicar <em>stop</em> por z-score extremo.</li>
+          <li><strong>Validação:</strong> aprende a relação no início (<em>in-sample</em>) e opera no restante (<em>out-of-sample</em>).</li>
+        </ul>
+      </div>
+    </section>
+
+
+
+    <!-- Resultados do Backtest (Carteira) -->
+    <section class="section">
+      <div class="container">
+        <h2>Resultados do Backtest</h2>
+        <div class="card reveal">
+          <h3>Métricas de Performance</h3>
+          <p><strong>Período:</strong> 2014-2020 (7 anos)</p>
+          <p><strong>Número de pares selecionados:</strong> 30</p>
+          <p><strong>Total de trades executados:</strong> 325</p>
+          <p><strong>Retorno total:</strong> <span data-anim="metric">26.951,44%</span></p>
+          <p><strong>Retorno anualizado:</strong> <span data-anim="metric">406,40%</span></p>
+          <p><strong>Sharpe ratio:</strong> <span data-anim="metric">6,21</span></p>
+          <p><strong>Maximum drawdown:</strong> <span data-anim="metric">-12,51%</span></p>
+          <p><strong>Win rate:</strong> <span data-anim="metric">58,46%</span></p>
+          <p><strong>Profit factor:</strong> <span data-anim="metric">4,71</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gráficos -->
+    <section id="graficos" class="section">
+      <div class="container">
+        <h2>Visualização dos Trades</h2>
+        <div class="gallery">
+          <figure class="reveal">
+            <img src="assets/portfolio_equity_and_trades.png" alt="Curva de Equity com Retornos por Trade" class="lightbox-target">
+            <figcaption>Curva de equity com barras de retorno por trade (verde = lucro, vermelho = prejuízo)</figcaption>
+          </figure>
+          <figure class="reveal">
+            <img src="assets/portfolio_equity_marks.png" alt="Curva de Equity com Marcações de Trades" class="lightbox-target">
+            <figcaption>Curva de equity com marcações dos trades (↑ vitórias, ↓ perdas)</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Projeto acadêmico — Pair Trading na B3. Código simplificado sem dados pesados.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
