@@ -16,6 +16,7 @@ from ..preparation.data_preparator import DataPreparator
 from ..analysis.cointegration_analyzer import CointegrationAnalyzer
 from ..analysis.hurst_analyzer import HurstAnalyzer
 from ..analysis.cross_mean_analyzer import CrossMeanAnalyzer
+from ..analysis.tail_dependence_analyzer import TailDependenceAnalyzer
 from ..utils.config_manager import ConfigManager
 from ..utils.progress_tracker import ProgressTracker, OperationContext
 from ..utils.logger import get_logger
@@ -50,6 +51,7 @@ class PairTradingPipeline:
         self.cointegration_analyzer = CointegrationAnalyzer(self.config)
         self.hurst_analyzer = HurstAnalyzer(self.config)
         self.cross_mean_analyzer = CrossMeanAnalyzer(self.config)
+        self.tail_dependence_analyzer = TailDependenceAnalyzer(self.config)
         
         # Cache de resultados
         self.results = {
@@ -236,6 +238,18 @@ class PairTradingPipeline:
                 final_pairs = self.cross_mean_analyzer.filter_pairs_by_crossings(
                     hurst_filtered,
                     self.results['price_matrix']
+                )
+                
+                # Anotar métricas de tail dependence nos pares finais
+                final_pairs = self.tail_dependence_analyzer.annotate_tail_dependence(
+                    final_pairs,
+                    self.results['price_matrix']
+                )
+                
+                # Filtro 3: Tail Dependence (opcional)
+                tracker.log_milestone("Aplicando filtro de tail dependence...")
+                final_pairs = self.tail_dependence_analyzer.filter_pairs_by_tail_dependence(
+                    final_pairs
                 )
                 
                 # Salvar resultados finais

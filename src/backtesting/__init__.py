@@ -4,7 +4,6 @@ Módulo de Backtesting
 Responsável pela simulação de estratégias e avaliação de performance.
 """
 
-from .backtest_engine import BacktestEngine
-from .performance_analyzer import PerformanceAnalyzer
+from .backtester import PairBacktester
 
-__all__ = ['BacktestEngine', 'PerformanceAnalyzer']
+__all__ = ['PairBacktester']

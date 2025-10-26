@@ -98,7 +98,11 @@ print(f"✅ Analysis complete! {stats['final_selected_pairs']} pairs found")
 results = pipeline.get_results()
 if results['liquidity_analysis'] is not None:
     print("🏆 TOP 10 MOST LIQUID STOCKS:")
-    print(results['liquidity_analysis'][['ticker', 'nome_resumido', 'volume_medio_diario']].head(10))
+    la = results['liquidity_analysis']
+    cols = ['ticker', 'nome_resumido']
+    if 'score_liquidez' in la.columns:
+        cols.append('score_liquidez')
+    print(la[cols].head(10))
 
 # Cointegrated pairs
 if results['cointegrated_pairs'] is not None and not results['cointegrated_pairs'].empty:

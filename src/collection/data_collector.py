@@ -332,14 +332,20 @@ class DataCollector:
         
         # Log do resultado final
         self.logger.info(f"\n=== TOP 20 AÇÕES MAIS LÍQUIDAS {periodo_str.replace('_', '-')} ===")
-        top_20_display = df_results[['ranking', 'ticker', 'nome_resumido', 
-                                   'volume_medio_diario', 'frequencia_negociacao']].head(20)
+        display_cols = ['ranking', 'ticker', 'nome_resumido']
+        if 'score_liquidez' in df_results.columns:
+            display_cols.append('score_liquidez')
+        top_20_display = df_results[display_cols].head(20)
         
         # Exibir resultado formatado
         for _, row in top_20_display.iterrows():
-            self.logger.info(f"{row['ranking']:2d}. {row['ticker']:8s} - {row['nome_resumido']:20s} - "
-                           f"Vol: R$ {row['volume_medio_diario']:12,.0f} - "
-                           f"Freq: {row['frequencia_negociacao']:5.1%}")
+            details = f"{row['ranking']:2d}. {row['ticker']:8s} - {row['nome_resumido']:20s}"
+            if 'score_liquidez' in top_20_display.columns:
+                try:
+                    details += f" - Score: {row['score_liquidez']:12,.0f}"
+                except Exception:
+                    details += f" - Score: {row['score_liquidez']}"
+            self.logger.info(details)
         
         return df_results
     

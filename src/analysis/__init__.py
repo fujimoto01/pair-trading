@@ -7,5 +7,6 @@ Responsável por testes de cointegração, análise de Hurst e filtros estatíst
 from .cointegration_analyzer import CointegrationAnalyzer
 from .hurst_analyzer import HurstAnalyzer
 from .cross_mean_analyzer import CrossMeanAnalyzer
+from .tail_dependence_analyzer import TailDependenceAnalyzer
 
-__all__ = ['CointegrationAnalyzer', 'HurstAnalyzer', 'CrossMeanAnalyzer']
+__all__ = ['CointegrationAnalyzer', 'HurstAnalyzer', 'CrossMeanAnalyzer', 'TailDependenceAnalyzer']

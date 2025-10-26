@@ -2,30 +2,46 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import os
+import argparse
+from src.utils.config_manager import ConfigManager
 
-def plotar_teste_visual_completo(matriz_precos, df_pares, n_amostra=5):
+
+def plotar_teste_visual_completo(matriz_precos, df_pares, n_amostra=5, criterio='mean_crossings', incluir_piores=True, pasta_out='outputs/06_visual_tests'):
     """
     Gera gráficos de duas partes: preços normalizados e o spread com sua média.
-    Plota os N melhores (mais cruzamentos) e os N piores (menos cruzamentos).
+    Permite escolher a quantidade de pares e o critério de seleção.
     """
     print("Iniciando a geração de gráficos de diagnóstico...")
 
-    pasta_graficos = 'testes_visuais_frequencia'
+    pasta_graficos = pasta_out
     if not os.path.exists(pasta_graficos):
         os.makedirs(pasta_graficos)
         print(f"Pasta '{pasta_graficos}' criada para salvar os gráficos.")
 
-    # Amostra dos melhores e piores
-    top_pares = df_pares.head(n_amostra)
-    bottom_pares = df_pares.tail(n_amostra)
+    # Ordenação dos pares pelo critério escolhido
+    if criterio in df_pares.columns:
+        sort_col = criterio
+    else:
+        sort_col = 'num_cruzamentos' if 'num_cruzamentos' in df_pares.columns else ('mean_crossings' if 'mean_crossings' in df_pares.columns else None)
+    if sort_col is None:
+        print("Nenhuma coluna de ordenação encontrada; mantendo a ordem original.")
+        df_pares_sorted = df_pares
+    else:
+        # p-valor: menor é melhor (ascending=True). Para os demais, maior é melhor.
+        ascending = (sort_col == 'p_valor_coint')
+        df_pares_sorted = df_pares.sort_values(by=sort_col, ascending=ascending)
+
+    # Amostra dos melhores e, opcionalmente, piores
+    top_pares = df_pares_sorted.head(n_amostra)
+    bottom_pares = df_pares_sorted.tail(n_amostra) if incluir_piores else pd.DataFrame(columns=df_pares_sorted.columns)
     amostra_total = pd.concat([top_pares, bottom_pares])
 
     for index, row in amostra_total.iterrows():
         ticker1 = row['Ativo_A']
         ticker2 = row['Ativo_B']
         p_valor = row['p_valor_coint']
-        hurst = row['expoente_hurst']
-        cruzamentos = row['num_cruzamentos']
+        hurst = row.get('expoente_hurst', row.get('hurst_exponent', float('nan')))
+        cruzamentos = row.get('num_cruzamentos', row.get('mean_crossings', None))
 
         print(f"  Plotando par: {ticker1}-{ticker2} ({cruzamentos} cruzamentos)...")
 
@@ -69,18 +85,53 @@ def plotar_teste_visual_completo(matriz_precos, df_pares, n_amostra=5):
 
     print(f"\nGráficos de diagnóstico salvos com sucesso na pasta '{pasta_graficos}'.")
 
+
 # --- Função de Execução ---
+
 def main():
-    arquivo_matriz_precos = 'matriz_precos_2014_2015.csv'
-    # Usamos o arquivo final, que contém a contagem de cruzamentos
-    arquivo_pares = 'pares_finais_selecionados_2014_2015.csv'
+    parser = argparse.ArgumentParser(description='Gerar gráficos de diagnóstico de pares.')
+    parser.add_argument('--n-amostra', type=int, default=5, help='Quantidade de pares no topo/rodapé a serem plotados')
+    parser.add_argument('--criterio', type=str, default='mean_crossings', help='Coluna para ordenar os pares (ex.: mean_crossings, p_valor_coint, hurst_exponent, score_coint)')
+    parser.add_argument('--somente-top', action='store_true', help='Se definido, plota apenas os melhores, sem os piores')
+    parser.add_argument('--pasta-out', type=str, default='outputs/06_visual_tests', help='Diretório de saída para salvar os gráficos')
+    args = parser.parse_args()
+
+    config = ConfigManager()
+    years = config.get('data.years', [])
+    periodo_str = "_".join(map(str, years))
+
+    # Caminhos organizados conforme configuração
+    arquivo_matriz_precos = config.get_output_path(f'matriz_precos_{periodo_str}.csv', 'price_matrix')
+    arquivo_pares = config.get_output_path(f'pares_finais_selecionados_{periodo_str}.csv', 'final_results')
 
     print("Carregando arquivos de dados...")
-    matriz_de_precos = pd.read_csv(arquivo_matriz_precos, sep=';', decimal=',', index_col=0, parse_dates=True)
-    df_pares_finais = pd.read_csv(arquivo_pares, sep=';', decimal=',')
+
+    # Verificações de existência com mensagem amigável
+    if not os.path.exists(arquivo_matriz_precos):
+        print(f"Arquivo de matriz de preços não encontrado: {arquivo_matriz_precos}")
+        print("Execute a pipeline (Fase 2) para gerar a matriz de preços.")
+        return
+    if not os.path.exists(arquivo_pares):
+        print(f"Arquivo de pares finais não encontrado: {arquivo_pares}")
+        print("Execute a pipeline (Fase 4) para gerar os pares finais.")
+        return
+
+    separator = config.get('data.output.separator', ';')
+    decimal = config.get('data.output.decimal', ',')
+
+    matriz_de_precos = pd.read_csv(arquivo_matriz_precos, sep=separator, decimal=decimal, index_col=0, parse_dates=True)
+    df_pares_finais = pd.read_csv(arquivo_pares, sep=separator, decimal=decimal)
     print("Dados carregados.")
 
-    plotar_teste_visual_completo(matriz_de_precos, df_pares_finais, n_amostra=5)
+    plotar_teste_visual_completo(
+        matriz_de_precos,
+        df_pares_finais,
+        n_amostra=args.n_amostra,
+        criterio=args.criterio,
+        incluir_piores=(not args.somente_top),
+        pasta_out=args.pasta_out,
+    )
+
 
 if __name__ == "__main__":
     main()
