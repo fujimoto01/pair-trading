@@ -129,3 +129,7 @@ data/
 outputs/
 *.TXT
 *.ZIP
+# Local tools and assistant files
+cloudflared.exe
+*.exe
+.claude/

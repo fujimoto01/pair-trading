@@ -1,413 +1,108 @@
-# Pair Trading Brasil - Pipeline Quantitativo Completo
+# Pair Trading on B3: a statistical arbitrage pipeline
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![Pandas](https://img.shields.io/badge/Pandas-2.0+-green.svg)
-![Status](https://img.shields.io/badge/Status-Produção-green.svg)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-2.x-150458?style=flat-square&logo=pandas&logoColor=white)
+![statsmodels](https://img.shields.io/badge/statsmodels-0.14-4B8BBE?style=flat-square)
+![Itaú Asset Quant challenge](https://img.shields.io/badge/Itaú%20Asset%20Quant%20challenge-Top%2025%20nationwide-EC7000?style=flat-square)
 
-## 📊 Visão Geral
+An end-to-end research pipeline that screens the Brazilian stock market (B3) for **cointegrated pairs of stocks** and simulates a **market-neutral mean-reversion strategy** on them, using 7 years of official daily data (2014–2020).
 
-Pipeline quantitativo profissional para seleção, análise e simulação de estratégias de **pair trading** no mercado brasileiro (B3), utilizando dados históricos COTAHIST e múltiplos filtros estatísticos. 
+Built by **Vitor Fujimoto**, **Diego Lopes** and **Guilherme Verissimo**, Statistics undergraduates at the Federal University of Paraná (UFPR), for the **Itaú Asset university Quant challenge**, where the project placed in the **Top 25 teams nationwide**.
 
-### 🆕 Nova Arquitetura Profissional (v2.0)
-
-- **🏗️ Arquitetura Modular:** Código organizado em classes e módulos profissionais
-- **⚙️ Configuração Centralizada:** Parâmetros ajustáveis via YAML com validação
-- **📱 Interface Interativa:** Jupyter notebook com widgets para controle user-friendly
-- **📊 Progress Tracking:** Indicadores de progresso em tempo real
-- **💾 Cache Inteligente:** Sistema de cache para otimizar re-execuções
-- **🔒 Error Handling:** Tratamento robusto de erros com mensagens user-friendly
+🌐 **Project page:** https://fujimoto01.github.io/pair-trading/
 
 ---
 
-## 🚀 Início Rápido
+## The idea in one paragraph
 
-### 1. Instalação de Dependências
+Two stocks exposed to the same economic drivers (two banks, two steelmakers) tend to move together. When the price gap between them, the *spread*, drifts unusually far from its historical level, a pairs trader sells the expensive one and buys the cheap one, betting that the gap will close. The hard part is statistical: telling apart pairs with a genuine long-run equilibrium from pairs that only looked correlated by chance. That is what this pipeline is about.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    A[COTAHIST files<br>B3, 2014–2020] --> B[Liquidity screen<br>top-N stocks]
+    B --> C[Price matrix]
+    C --> D[Engle-Granger<br>cointegration]
+    D --> E[Hurst exponent<br>H &lt; 0.5]
+    E --> F[Mean crossings]
+    F --> G[Tail dependence]
+    G --> H[Ranked pairs]
+    H --> I[Z-score backtest<br>costs + slippage]
+```
+
+| Stage | What it does | Why it matters |
+|---|---|---|
+| **1. Data** | Parses B3's fixed-width COTAHIST files; keeps common and preferred shares on the spot market (no ETFs, BDRs, units or REITs). | Official exchange data, not a third-party API. |
+| **2. Liquidity** | Ranks stocks by a weighted score of traded volume, number of trades, trading frequency and consistency. | A pair is only tradable if both legs can be entered and exited at realistic prices. |
+| **3. Cointegration** | Runs the Engle-Granger test on every pair of liquid stocks (~4,950 pairs for 100 stocks). | Correlation is not enough: cointegration means the spread is stationary and has an equilibrium to return to. |
+| **4. Hurst exponent** | Keeps spreads with H < 0.5 (R/S method). | Confirms the spread is mean-reverting rather than trending or a random walk. |
+| **5. Mean crossings** | Requires at least 12 crossings of the mean per year. | A spread that reverts once every two years is statistically valid but useless for trading. |
+| **6. Tail dependence** | Estimates empirical lower and upper tail dependence. | Filters out pairs that crash together in market stress, when the hedge is needed most. |
+| **7. Backtest** | Hedge ratio by OLS on the in-sample window (70%); trades the out-of-sample window (30%) on rolling z-score signals, with one-day execution delay, transaction costs, slippage and a z-score stop. | Separates estimation from evaluation and charges realistic frictions. |
+
+## Results and ongoing validation
+
+The pipeline consistently narrows the market down to a few dozen candidate pairs out of thousands of combinations. The first backtest run produced returns far too high to be credible, so we audited the backtester before publishing any performance number. The audit found issues that inflate results, which we are fixing:
+
+- **Selection look-ahead.** Pairs are selected with statistics computed over the full 2014–2020 sample, which includes the out-of-sample trading window. Fix: select pairs using only data available before each trading window (walk-forward).
+- **Portfolio aggregation.** Trades from 30 pairs, which overlap in time, are compounded one after another as if each one used the whole portfolio. Fix: mark the portfolio to market daily with a shared capital budget.
+- **Metric annualization.** The annual return and Sharpe ratio treat each trade as one trading day. Fix: compute them from a daily equity curve.
+- **Hedge leg sign.** The profit and loss of the second leg has its sign flipped, so the simulated position is not market neutral. Fix: correct the sign and add unit tests for each trade direction.
+
+Corrected, out-of-sample results will be published here once the walk-forward backtest is in place. We think this audit is as important as the pipeline itself: in quantitative finance, a backtest that looks too good usually is.
+
+## Quick start
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Interface Jupyter (Recomendado)
+Download the yearly `COTAHIST_AYYYY.ZIP` files from B3's historical quotes page, extract them into `data/`, then run:
 
 ```bash
-jupyter notebook pair_trading_analysis.ipynb
+python run_pipeline.py --anos 2014-2020
 ```
 
-**✨ A interface Jupyter oferece:**
-- Controles interativos para ajuste de parâmetros
-- Execução passo-a-passo com feedback visual
-- Widgets para configuração sem editar código
-- Progress bars em tempo real
-- Visualização automática de resultados
-
-### 3. Uso Programático
-
-```python
-from src.pipeline.pair_trading_pipeline import PairTradingPipeline
-
-# Inicializar pipeline
-pipeline = PairTradingPipeline()
-
-# Executar análise completa
-results = pipeline.execute_full_pipeline()
-
-# Obter pares finais
-final_pairs = results['final_pairs']
+```bash
+python portfolio_backtest.py --anos 2014-2020 --n-pares 30
 ```
 
----
+All parameters (liquidity weights, p-value threshold, Hurst cut-off, z-score entry and exit, costs, train/test split) live in [`config/config.yaml`](config/config.yaml). The notebook [`pair_trading_analysis.ipynb`](pair_trading_analysis.ipynb) runs the same pipeline step by step with interactive widgets.
 
-## 🗂️ Estrutura do Projeto
-
-### **Arquitetura Modular Profissional**
+## Project structure
 
 ```
 pair-trading/
-├── 📁 src/                          # Código fonte principal
-│   ├── 📁 collection/               # Fase 1: Coleta e análise de liquidez
-│   │   └── data_collector.py        # Classe DataCollector
-│   ├── 📁 preparation/              # Fase 2: Preparação de dados
-│   │   └── data_preparator.py       # Classe DataPreparator
-│   ├── 📁 analysis/                 # Fase 3: Análise estatística
-│   │   ├── cointegration_analyzer.py # Classe CointegrationAnalyzer
-│   │   ├── hurst_analyzer.py        # Classe HurstAnalyzer
-│   │   └── cross_mean_analyzer.py   # Classe CrossMeanAnalyzer
-│   ├── 📁 strategy/                 # Fase 4: Estratégias (futuro)
-│   ├── 📁 backtesting/              # Fase 5: Backtesting (futuro)
-│   ├── 📁 utils/                    # Utilitários
-│   │   ├── config_manager.py        # Gerenciador de configurações
-│   │   ├── progress_tracker.py      # Sistema de progresso
-│   │   └── logger.py                # Sistema de logging
-│   └── 📁 pipeline/                 # Orquestrador principal
-│       └── pair_trading_pipeline.py # Classe PairTradingPipeline
-├── 📁 config/                       # Configurações
-│   └── config.yaml                  # Parâmetros configuráveis
-├── 📁 .claude/                      # Contexto do projeto
-│   ├── project-context.json         # Contexto técnico
-│   └── session-memory.json         # Memória de decisões
-├── 📊 pair_trading_analysis.ipynb   # Interface Jupyter interativa
-├── 📋 requirements.txt              # Dependências
-├── 🗃️ COTAHIST_A2014.TXT           # Dados históricos B3
-├── 🗃️ COTAHIST_A2015.TXT           # Dados históricos B3
-└── 📖 README.md                     # Esta documentação
+├── src/
+│   ├── collection/     # COTAHIST parsing and liquidity scoring
+│   ├── preparation/    # price matrix
+│   ├── analysis/       # cointegration, Hurst, mean crossings, tail dependence
+│   ├── backtesting/    # pair and portfolio backtesters
+│   ├── pipeline/       # orchestrates all stages, with caching
+│   └── utils/          # configuration and logging
+├── config/config.yaml  # every tunable parameter
+├── run_pipeline.py     # CLI: full selection pipeline
+├── portfolio_backtest.py
+├── pair_trading_analysis.ipynb
+└── site/               # project page (GitHub Pages)
 ```
 
-### **Componentes Principais**
+## Tech stack
 
-#### 🏗️ Pipeline Principal (`PairTradingPipeline`)
-- Orquestrador que coordena todas as fases
-- Sistema de cache inteligente
-- Progress tracking automático
-- Error handling robusto
-
-#### ⚙️ Configuração (`ConfigManager`)
-- Parâmetros centralizados em YAML
-- Validação automática de configurações
-- Interface para ajuste via notebook
-
-#### 📊 Análise Modular
-- **DataCollector:** Análise de liquidez do mercado
-- **DataPreparator:** Criação de matrizes de preços
-- **CointegrationAnalyzer:** Testes estatísticos de cointegração
-- **HurstAnalyzer:** Análise de reversão à média
-- **CrossMeanAnalyzer:** Análise de frequência de sinais
+Python · pandas · NumPy · SciPy · statsmodels · PyYAML · Jupyter
 
 ---
 
-## 🚀 Como Usar
+<details>
+<summary><b>🇧🇷 Resumo em português</b></summary>
 
-### **Opção 1: Interface Jupyter (Recomendado)**
+<br>
 
-1. **Abrir o notebook:**
-   ```bash
-   jupyter notebook pair_trading_analysis.ipynb
-   ```
+Pipeline de pesquisa que seleciona pares de ações cointegradas na B3 e simula uma estratégia de retorno à média neutra ao mercado, com dados oficiais COTAHIST de 2014 a 2020. Etapas: filtro de liquidez, teste de cointegração de Engle-Granger, expoente de Hurst, cruzamentos da média, dependência de cauda e backtest com custos, derrapagem e separação dentro e fora da amostra.
 
-2. **Seguir o workflow interativo:**
-   - ⚙️ Configurar parâmetros com widgets
-   - ▶️ Executar fases individualmente ou completa
-   - 📊 Visualizar resultados em tempo real
-   - 🎯 Ajustar configurações e re-executar
+Projeto de Vitor Fujimoto, Diego Lopes e Guilherme Verissimo, estudantes de Estatística da UFPR, feito para o desafio universitário Quant da Itaú Asset, em que ficou entre as 25 melhores equipes do país.
 
-### **Opção 2: Uso Programático**
+Os primeiros resultados do backtest saíram bons demais para serem verdade, então auditamos o código antes de divulgar números. A auditoria encontrou viés de seleção, agregação incorreta da carteira, anualização das métricas por trade e um erro de sinal na segunda perna. Os resultados corrigidos serão publicados aqui.
 
-```python
-from src.pipeline.pair_trading_pipeline import PairTradingPipeline
-
-# Inicializar pipeline
-pipeline = PairTradingPipeline()
-
-# Executar fases individuais
-liquidity_results = pipeline.execute_phase_1_liquidity()
-price_matrix = pipeline.execute_phase_2_preparation()
-cointegrated_pairs = pipeline.execute_phase_3_cointegration()
-final_pairs = pipeline.execute_phase_4_statistical_filters()
-
-# OU executar pipeline completo
-all_results = pipeline.execute_full_pipeline()
-```
-
-### **Opção 3: Scripts Legados (Compatibilidade)**
-
-```bash
-# Ainda funcionam para compatibilidade
-python data_collection.py
-python data_preparing.py
-python cointegration_test.py
-```
-
----
-
-## ⚙️ Configuração de Parâmetros
-
-### **Via Interface Jupyter**
-- Widgets interativos para ajuste em tempo real
-- Validação automática de parâmetros
-- Preview de configurações antes da execução
-
-### **Via Arquivo YAML**
-```yaml
-# config/config.yaml
-liquidity:
-  selection:
-    top_n_stocks: 100              # Número de ações mais líquidas
-    min_daily_volume: 500000       # Volume mínimo diário (R$)
-    min_trading_frequency: 0.8     # Frequência mínima (80%)
-
-analysis:
-  cointegration:
-    significance_level: 0.05       # P-valor máximo
-  hurst:
-    max_hurst_exponent: 0.5        # Hurst máximo para reversão
-  cross_mean:
-    min_crossings_2y: 24           # Cruzamentos mínimos em 2 anos
-```
-
-### **Via Código**
-```python
-from src.utils.config_manager import ConfigManager
-
-config = ConfigManager()
-config.set('liquidity.selection.top_n_stocks', 150)
-config.set('analysis.cointegration.significance_level', 0.01)
-config.save()  # Salvar alterações
-```
-
----
-
-## 📈 Metodologia
-
-### **Pipeline de 4 Fases**
-
-#### **📊 Fase 1: Análise de Liquidez**
-- **Objetivo:** Selecionar as N ações mais líquidas do mercado
-- **Metodologia:** Score multifatorial baseado em:
-  - Volume médio diário
-  - Número de negócios
-  - Frequência de negociação
-  - Consistência temporal
-- **Filtros:** Volume > R$ 500k/dia, Frequência > 80%
-- **Saída:** Top 100 ações mais líquidas
-
-#### **🔧 Fase 2: Preparação de Dados**
-- **Objetivo:** Criar matriz estruturada de preços
-- **Metodologia:** 
-  - Parsing otimizado de arquivos COTAHIST
-  - Filtros de qualidade e consistência
-  - Tratamento de valores ausentes
-- **Saída:** Matriz de preços (datas x tickers)
-
-#### **🔬 Fase 3: Análise de Cointegração**
-- **Objetivo:** Identificar pares estatisticamente relacionados
-- **Metodologia:** Teste de Engle-Granger para todas as combinações
-- **Critério:** P-valor < 0.05 (configurável)
-- **Saída:** Pares cointegrados ordenados por significância
-
-#### **🎯 Fase 4: Filtros Estatísticos**
-- **Objetivo:** Selecionar pares com características de reversão
-- **Filtro 1 - Hurst:** Expoente < 0.5 (reversão à média)
-- **Filtro 2 - Frequência:** Mínimo 24 cruzamentos da média em 2 anos
-- **Saída:** Pares finais prontos para estratégia
-
-### **Critérios de Qualidade**
-
-- **Mercado:** Apenas ações ordinárias/preferenciais (BDI 02)
-- **Tipo:** Mercado à vista (tipo 10)
-- **Exclusões:** ETFs, BDRs, Units, FIIs
-- **Validação:** Preços positivos, volumes consistentes
-
----
-
-## 🔍 Resultados Esperados
-
-### **Estatísticas Típicas**
-- **Ações analisadas:** ~2.000-3.000 por ano
-- **Top 100 líquidas:** Filtradas por volume e frequência
-- **Combinações testadas:** ~4.950 pares (100 escolhe 2)
-- **Pares cointegrados:** 50-200 (dependendo do p-valor)
-- **Pares finais:** 5-50 (após filtros estatísticos)
-
-### **Taxa de Conversão**
-- **Típica:** 0.1% - 1.0% dos pares testados
-- **Meta:** Encontrar 10-20 pares robustos para estratégia
-
-### **Arquivos Gerados**
-```
-📁 Resultados/
-├── top_100_acoes_liquidas_2014_2015_completo.csv
-├── top_100_acoes_liquidas_2014_2015_tickers.txt
-├── matriz_precos_2014_2015.csv
-├── pares_cointegrados_2014_2015.csv
-├── pares_filtrados_hurst_2014_2015.csv
-└── pares_finais_selecionados_2014_2015.csv
-```
-
----
-
-## �️ Desenvolvimento e Extensão
-
-### **Próximas Fases (Roadmap)**
-
-#### **Fase 5: Estratégias de Trading**
-```python
-# Implementação planejada
-from src.strategy import SignalGenerator, StrategyExecutor
-
-signal_gen = SignalGenerator()
-signals = signal_gen.generate_zscore_signals(best_pair, threshold=2.0)
-```
-
-#### **Fase 6: Backtesting Engine**
-```python
-# Implementação planejada
-from src.backtesting import BacktestEngine
-
-engine = BacktestEngine()
-results = engine.run_backtest(signals, initial_capital=100000)
-```
-
-#### **Fase 7: Performance Analytics**
-```python
-# Implementação planejada
-from src.backtesting import PerformanceAnalyzer
-
-analyzer = PerformanceAnalyzer()
-metrics = analyzer.calculate_metrics(results)
-```
-
-### **Extensibilidade**
-
-#### **Novos Filtros**
-```python
-# Exemplo: adicionar novo filtro
-class VolatilityAnalyzer:
-    def filter_pairs_by_volatility(self, pairs_df, price_matrix):
-        # Implementar lógica de filtro
-        pass
-```
-
-#### **Novas Estratégias**
-```python
-# Exemplo: estratégia alternativa
-class MachineLearningStrategy:
-    def generate_ml_signals(self, features, model):
-        # Implementar ML para sinais
-        pass
-```
-
-### **Testes e Validação**
-```bash
-# Testes unitários (futuro)
-pytest tests/
-
-# Validação de dados
-python -m src.utils.data_validator
-```
-
----
-
-## 📊 Monitoramento e Performance
-
-### **Progress Tracking**
-- Barras de progresso em tempo real
-- Estimativas de tempo restante
-- Logs detalhados de cada etapa
-- Milestone tracking automático
-
-### **Sistema de Cache**
-- Cache inteligente de resultados intermediários
-- Invalidação automática quando parâmetros mudam
-- Otimização para re-execuções
-
-### **Error Handling**
-- Mensagens de erro user-friendly
-- Validação proativa de dados
-- Recovery automático quando possível
-- Logging detalhado para debugging
-
----
-
-## 🔧 Troubleshooting
-
-### **Problemas Comuns**
-
-#### **Arquivos COTAHIST não encontrados**
-```
-❌ Erro: Arquivo 'COTAHIST_A2014.TXT' não encontrado!
-✅ Solução: Baixar arquivos da B3 e colocar no diretório raiz
-```
-
-#### **Memória insuficiente**
-```
-❌ Erro: MemoryError durante processamento
-✅ Solução: Ajustar chunk_size no config.yaml
-```
-
-#### **Nenhum par encontrado**
-```
-❌ Nenhum par passou pelos filtros
-✅ Solução: Relaxar parâmetros (aumentar p-valor, Hurst, etc.)
-```
-
-### **Configurações de Debug**
-```yaml
-# config.yaml
-logging:
-  level: "DEBUG"
-  show_progress: true
-  file: "debug.log"
-```
-
----
-
-## 📜 Licença e Informações
-
-**Projeto:** Pair Trading Brasil - Pipeline Quantitativo  
-**Proprietário:** Itaú Unibanco  
-**Versão:** 2.0 (Arquitetura Profissional)  
-**Última Atualização:** Setembro 2025  
-**Compatibilidade:** Python 3.8+, Pandas 2.0+, Jupyter
-
-### **Créditos**
-- **Desenvolvimento:** Equipe Quantitativa Itaú Unibanco
-- **Dados:** B3 - Bolsa de Valores Brasileira (COTAHIST)
-- **Metodologia:** Baseada em literatura acadêmica de pair trading
-
-### **Changelog v2.0**
-- ✅ Migração para arquitetura orientada a objetos
-- ✅ Sistema de configuração YAML centralizado
-- ✅ Interface Jupyter interativa com widgets
-- ✅ Progress tracking e error handling robusto
-- ✅ Sistema de cache inteligente
-- ✅ Documentação profissional completa
-- ✅ Estrutura modular extensível
-
-### **Próximas Versões**
-- 🔄 v2.1: Implementação de estratégias de sinais
-- 🔄 v2.2: Engine de backtesting completo
-- 🔄 v2.3: Dashboards de visualização
-- 🔄 v3.0: Machine Learning e otimização de portfólio
-
----
-
-**💡 Dica:** Use a interface Jupyter para a melhor experiência de usuário!
+</details>
