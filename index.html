@@ -11,8 +11,8 @@
   <section class="hero">
     <div class="container">
       <div class="context-section reveal">
-        <h2>Projeto de Pesquisa Quantitativa - UFPR</h2>
-        <p>Este trabalho foi desenvolvido pelos alunos <strong>Vitor Fujimoto</strong>, <strong>Diego Lopes</strong> e <strong>Guilherme Verissimo</strong> do curso de <strong>Estatística da Universidade Federal do Paraná (UFPR)</strong>. A pesquisa foi realizada como parte de um projeto de pesquisa quantitativa focado na criação de um robô de investimentos baseado em estratégias de pair trading.</p>
+        <h2>Desafio Quant Itaú Asset · Top 25 do Brasil</h2>
+        <p>Projeto de <strong>Vitor Fujimoto</strong>, <strong>Diego Lopes</strong> e <strong>Guilherme Verissimo</strong>, estudantes de <strong>Estatística da Universidade Federal do Paraná (UFPR)</strong>, desenvolvido para o desafio universitário Quant da Itaú Asset, em que ficou entre as <strong>25 melhores equipes do país</strong>. O objetivo foi criar um robô de investimentos baseado em pair trading. <a href="https://github.com/fujimoto01/pair-trading" style="color:#38bdf8">Código no GitHub</a>.</p>
       </div>
       
       <h1 class="main-title">Pair Trading - Estratégia Quantitativa</h1>
@@ -82,48 +82,27 @@
 
 
 
-    <!-- Resultados do Backtest (Carteira) -->
+    <!-- Resultados e validação -->
     <section class="section">
       <div class="container">
-        <h2>Resultados do Backtest</h2>
+        <h2>Resultados e validação</h2>
         <div class="card reveal">
-          <h3>Métricas de Performance</h3>
-          <p><strong>Período:</strong> 2014-2020 (7 anos)</p>
-          <p><strong>Número de pares selecionados:</strong> 30</p>
-          <p><strong>Total de trades executados:</strong> 325</p>
-          <p><strong>Retorno total:</strong> <span data-anim="metric">26.951,44%</span></p>
-          <p><strong>Retorno anualizado:</strong> <span data-anim="metric">406,40%</span></p>
-          <p><strong>Sharpe ratio:</strong> <span data-anim="metric">6,21</span></p>
-          <p><strong>Maximum drawdown:</strong> <span data-anim="metric">-12,51%</span></p>
-          <p><strong>Win rate:</strong> <span data-anim="metric">58,46%</span></p>
-          <p><strong>Profit factor:</strong> <span data-anim="metric">4,71</span></p>
+          <h3>Auditoria do backtest em andamento</h3>
+          <p>A primeira simulação da carteira (30 pares, 2014–2020, 325 trades) deu um retorno alto demais para ser crível. Por isso, auditamos o backtest antes de divulgar números de desempenho. A auditoria encontrou quatro problemas que inflam o resultado, e eles estão sendo corrigidos:</p>
+          <p><strong>Viés de seleção:</strong> os pares são escolhidos com dados de todo o período, inclusive a janela em que o robô opera. A correção é selecionar só com dados anteriores a cada janela (walk-forward).</p>
+          <p><strong>Agregação da carteira:</strong> trades simultâneos de pares diferentes são compostos em sequência, como se cada um usasse todo o capital. A correção é marcar a carteira a mercado dia a dia, com orçamento de capital compartilhado.</p>
+          <p><strong>Anualização:</strong> o retorno anual e o Sharpe tratam cada trade como um dia de pregão. A correção é calcular as métricas sobre a curva de patrimônio diária.</p>
+          <p><strong>Sinal da segunda perna:</strong> o resultado da segunda ação tem o sinal invertido, então a posição simulada não fica neutra ao mercado. A correção é ajustar o sinal e criar testes para cada direção de trade.</p>
+          <p>Os resultados corrigidos, fora da amostra, serão publicados aqui. Em finanças quantitativas, um backtest que parece bom demais quase sempre tem um erro.</p>
         </div>
       </div>
     </section>
-
-    <!-- Gráficos -->
-    <section id="graficos" class="section">
-      <div class="container">
-        <h2>Visualização dos Trades</h2>
-        <div class="gallery">
-          <figure class="reveal">
-            <img src="site/assets/portfolio_equity_and_trades.png" alt="Curva de Equity com Retornos por Trade" class="lightbox-target">
-            <figcaption>Curva de equity com barras de retorno por trade (verde = lucro, vermelho = prejuízo)</figcaption>
-          </figure>
-          <figure class="reveal">
-            <img src="site/assets/portfolio_equity_marks.png" alt="Curva de Equity com Marcações de Trades" class="lightbox-target">
-            <figcaption>Curva de equity com marcações dos trades (↑ vitórias, ↓ perdas)</figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
 
   </main>
 
   <footer class="footer">
     <div class="container">
-      <p>Projeto acadêmico — Pair Trading na B3. Código simplificado sem dados pesados.</p>
+      <p>Projeto acadêmico — Pair Trading na B3 · UFPR · Desafio Quant Itaú Asset.</p>
     </div>
   </footer>
 
