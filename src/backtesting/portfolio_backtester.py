@@ -1,3 +1,9 @@
+"""First version of the backtester, kept for reference only.
+
+It has the four errors described in the README (selection look-ahead,
+sequential compounding of overlapping trades, per-trade annualization and a
+flipped sign on the second leg). Use src/backtesting/walk_forward.py.
+"""
 import os
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional

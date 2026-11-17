@@ -26,6 +26,6 @@ IPython>=8.0.0
 # plotly>=5.14.0
 
 # Development and testing (optional)
-# pytest>=7.0.0
+pytest>=7.0.0
 # black>=23.0.0
 # flake8>=6.0.0

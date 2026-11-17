@@ -1,111 +1,252 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pair Trading - Estratégia Quantitativa</title>
+  <title>Pair trading on B3 · Vitor Fujimoto</title>
+  <meta name="description" content="A statistical arbitrage study on seven years of official B3 data: pair selection by cointegration and a walk-forward backtest, built for the Itaú Asset university Quant challenge.">
+  <meta property="og:title" content="Pair trading on B3">
+  <meta property="og:description" content="Pair selection by cointegration and a walk-forward backtest on seven years of official B3 data.">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="site/styles.css">
 </head>
-<body>
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container">
-      <div class="context-section reveal">
-        <h2>Desafio Quant Itaú Asset · Top 25 do Brasil</h2>
-        <p>Projeto de <strong>Vitor Fujimoto</strong>, <strong>Diego Lopes</strong> e <strong>Guilherme Verissimo</strong>, estudantes de <strong>Estatística da Universidade Federal do Paraná (UFPR)</strong>, desenvolvido para o desafio universitário Quant da Itaú Asset, em que ficou entre as <strong>25 melhores equipes do país</strong>. O objetivo foi criar um robô de investimentos baseado em pair trading. <a href="https://github.com/fujimoto01/pair-trading" style="color:#38bdf8">Código no GitHub</a>.</p>
-      </div>
-      
-      <h1 class="main-title">Pair Trading - Estratégia Quantitativa</h1>
-      <p class="subtitle">Robô de investimentos baseado em cointegração e análise estatística avançada</p>
-      <!-- CTA removido: Ver Estratégia -->
-      
-      <!-- Métricas removidas da primeira sessão conforme solicitado -->
-    </div>
-  </section>
+<body data-lang="en">
+  <main class="wrap" id="top">
 
-  <main>
-    <section id="visao-geral" class="section">
-      <div class="container">
-        <h2>Visão Geral</h2>
-        <p>O pipeline analisa dados históricos oficiais da B3 (COTAHIST), identifica pares de ações que mantêm um relacionamento estável no longo prazo e seleciona os melhores candidatos para uma estratégia de <em>retorno à média</em>. Em seguida, um backtest simula o robô operando esses pares com custos, hedge e controle de risco.</p>
+    <header class="top">
+      <p class="kicker">
+        <span class="en">Itaú Asset university Quant challenge · <b>Top 25 nationwide</b></span>
+        <span class="pt">Desafio universitário Quant da Itaú Asset · <b>Top 25 do país</b></span>
+      </p>
+      <h1><span class="en">Pair trading on B3</span><span class="pt">Pair trading na B3</span></h1>
+      <p class="lead">
+        <span class="en">A statistical arbitrage study on seven years of official data from the Brazilian stock exchange: how to find pairs of stocks that move together, and what is left of the strategy after an honest test.</span>
+        <span class="pt">Um estudo de arbitragem estatística com sete anos de dados oficiais da bolsa brasileira: como encontrar pares de ações que andam juntas, e o que sobra da estratégia depois de um teste honesto.</span>
+      </p>
+      <p class="byline">
+        <span class="en">Vitor Fujimoto, Diego Lopes and Guilherme Verissimo · Statistics, UFPR · 2025</span>
+        <span class="pt">Vitor Fujimoto, Diego Lopes e Guilherme Verissimo · Estatística, UFPR · 2025</span>
+      </p>
+      <div class="actions">
+        <a class="action" href="https://github.com/fujimoto01/pair-trading"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><span class="en">Code</span><span class="pt">Código</span></a>
+        <a class="action ghost" href="#results"><span class="en">Skip to the results</span><span class="pt">Ir para os resultados</span></a>
       </div>
+
+      <div class="facts">
+        <div><b>7</b><span class="en">years of daily B3 data</span><span class="pt">anos de dados diários da B3</span></div>
+        <div><b data-v="tested"></b><span class="en">pairs tested in each round</span><span class="pt">pares testados a cada rodada</span></div>
+        <div><b data-v="windows"></b><span class="en">out-of-sample rounds</span><span class="pt">rodadas fora da amostra</span></div>
+        <div><b data-v="trades"></b><span class="en">simulated trades</span><span class="pt">operações simuladas</span></div>
+      </div>
+    </header>
+
+    <section id="idea">
+      <div class="num">01</div>
+      <h2><span class="en">The idea</span><span class="pt">A ideia</span></h2>
+      <p class="en">Two companies exposed to the same forces, like two banks or two shopping mall operators, tend to see their share prices move together. Sometimes one runs ahead of the other. A pairs trader sells the one that got expensive, buys the one that got cheap and waits for the gap to close. Since one position is bought and the other is sold, the result depends on the gap between the two and very little on where the market goes.</p>
+      <p class="pt">Duas empresas expostas às mesmas forças, como dois bancos ou duas administradoras de shoppings, costumam ter ações que andam juntas. Às vezes uma dispara na frente da outra. Quem opera pares vende a que ficou cara, compra a que ficou barata e espera a distância fechar. Como uma posição é comprada e a outra é vendida, o resultado depende da distância entre as duas e muito pouco do rumo do mercado.</p>
+      <p class="en">That gap is the spread. To tell how unusual it is on a given day we use its z-score: how many standard deviations it sits from its own average over the previous 252 trading days. Above +<span data-v="entry"></span> the strategy sells the spread, below −<span data-v="entry"></span> it buys, and it closes the trade when the z-score comes back close to zero.</p>
+      <p class="pt">Essa distância é o spread. Para saber o quanto ela está fora do normal num dia usamos o z-score: a quantos desvios-padrão o spread está da própria média dos 252 pregões anteriores. Acima de +<span data-v="entry"></span> a estratégia vende o spread, abaixo de −<span data-v="entry"></span> ela compra, e a operação é encerrada quando o z-score volta para perto de zero.</p>
+      <figure>
+        <div class="fig" id="fig-example"></div>
+        <figcaption>
+          <span class="en"><b>Fig. 1</b>One of the pairs the pipeline selected, <span data-v="pair-a"></span> and <span data-v="pair-b"></span>, during one six-month trading window. Shaded bands are the trades: filled dots mark the entries, hollow dots the exits. The first two closed within days, when the spread came back. The third never did, and was closed at the end of the window.</span>
+          <span class="pt"><b>Fig. 1</b>Um dos pares selecionados pelo pipeline, <span data-v="pair-a"></span> e <span data-v="pair-b"></span>, numa janela de seis meses de operação. As faixas sombreadas são as operações: pontos cheios marcam as entradas, pontos vazados as saídas. As duas primeiras fecharam em poucos dias, quando o spread voltou. A terceira nunca voltou, e foi encerrada no fim da janela.</span>
+        </figcaption>
+      </figure>
     </section>
 
-    <section id="pipeline" class="section">
-      <div class="container">
-        <h2>Etapas do Pipeline</h2>
-        <div class="steps">
-          <div class="step">
-            <h3>1) Coleta e Preparação</h3>
-            <p>Leitura dos arquivos COTAHIST (2014–2020), limpeza e montagem de uma matriz de preços diários por ticker.</p>
-          </div>
-          <div class="step">
-            <h3>2) Liquidez</h3>
-            <p>Filtro para manter apenas ações com negociação consistente, garantindo entradas e saídas realistas.</p>
-          </div>
-          <div class="step">
-            <h3>3) Cointegração</h3>
-            <p>Teste de Engle–Granger identifica pares com elo de longo prazo (o “elástico” que puxa de volta). Par é aprovado se o <strong>p-valor</strong> for menor que o limiar configurado.</p>
-          </div>
-          <div class="step">
-            <h3>4) Retorno à Média (Hurst)</h3>
-            <p>Mede se o relacionamento entre o par tende a voltar ao centro (preferido para a estratégia) ou se costuma “caminhar” sem retorno.</p>
-          </div>
-          <div class="step">
-            <h3>5) Cruzamentos da Média</h3>
-            <p>Conta quantas vezes o spread cruza sua média: mais cruzamentos significam mais oportunidades de trade.</p>
-          </div>
-          <div class="step">
-            <h3>6) Dependência de Cauda</h3>
-            <p>Avalia o comportamento do par em extremos (quedas fortes), evitando pares que afundam juntos de forma perigosa.</p>
-          </div>
-          <div class="step">
-            <h3>7) Seleção Final</h3>
-            <p>Combina critérios e ranqueia os melhores pares. O backtest utiliza os <strong>30 primeiros</strong> por <code>mean_crossings</code>.</p>
-          </div>
+    <section id="selection">
+      <div class="num">02</div>
+      <h2><span class="en">Choosing the pairs</span><span class="pt">A escolha dos pares</span></h2>
+      <p class="en">Most pairs that look related are not. With <span data-v="stocks"></span> stocks there are <span data-v="tested"></span> possible pairs, and plenty of them moved together in the past by chance. The pipeline runs every pair through a sequence of statistical filters and trades up to <span data-v="pairs"></span> of the survivors, starting with those whose spread crosses its average most often.</p>
+      <p class="pt">A maioria dos pares que parecem relacionados não é. Com <span data-v="stocks"></span> ações existem <span data-v="tested"></span> pares possíveis, e muitos andaram juntos no passado por acaso. O pipeline passa cada par por uma sequência de filtros estatísticos e opera até <span data-v="pairs"></span> dos sobreviventes, começando pelos que mais cruzam a própria média.</p>
+      <figure>
+        <div class="fig" id="fig-funnel"></div>
+        <figcaption>
+          <span class="en"><b>Fig. 2</b>Pairs left after each filter, on average over the <span data-v="windows"></span> selection rounds. Percentages are relative to all pairs tested.</span>
+          <span class="pt"><b>Fig. 2</b>Pares que restam depois de cada filtro, na média das <span data-v="windows"></span> rodadas de seleção. Os percentuais são em relação a todos os pares testados.</span>
+        </figcaption>
+      </figure>
+      <dl class="defs">
+        <div>
+          <dt><span class="en">Liquidity</span><span class="pt">Liquidez</span><small><span class="en">100 most traded</span><span class="pt">100 mais negociadas</span></small></dt>
+          <dd class="en">Only the most traded stocks enter, so that both sides of a trade could really be executed at the prices used.</dd>
+          <dd class="pt">Só entram as ações mais negociadas, para que os dois lados da operação pudessem de fato ser executados aos preços usados.</dd>
         </div>
-      </div>
-    </section>
-
-    <section id="robô" class="section">
-      <div class="container">
-        <h2>Como o Robô Opera</h2>
-        <ul class="bullets">
-          <li><strong>Entrada:</strong> quando o <em>z-score</em> do spread se afasta muito do normal (limiar de entrada), o robô entra comprado na “barata” e vendido na “cara”, ou o inverso.</li>
-          <li><strong>Saída:</strong> quando o spread volta ao normal (limiar de saída), encerra a operação.</li>
-          <li><strong>Hedge:</strong> calcula a proporção (beta) para neutralizar movimentos gerais do mercado.</li>
-          <li><strong>Risco:</strong> limita o tamanho da posição, considera custos de transação e derrapagem (slippage) e pode aplicar <em>stop</em> por z-score extremo.</li>
-          <li><strong>Validação:</strong> aprende a relação no início (<em>in-sample</em>) e opera no restante (<em>out-of-sample</em>).</li>
-        </ul>
-      </div>
-    </section>
-
-
-
-    <!-- Resultados e validação -->
-    <section class="section">
-      <div class="container">
-        <h2>Resultados e validação</h2>
-        <div class="card reveal">
-          <h3>Auditoria do backtest em andamento</h3>
-          <p>A primeira simulação da carteira (30 pares, 2014–2020, 325 trades) deu um retorno alto demais para ser crível. Por isso, auditamos o backtest antes de divulgar números de desempenho. A auditoria encontrou quatro problemas que inflam o resultado, e eles estão sendo corrigidos:</p>
-          <p><strong>Viés de seleção:</strong> os pares são escolhidos com dados de todo o período, inclusive a janela em que o robô opera. A correção é selecionar só com dados anteriores a cada janela (walk-forward).</p>
-          <p><strong>Agregação da carteira:</strong> trades simultâneos de pares diferentes são compostos em sequência, como se cada um usasse todo o capital. A correção é marcar a carteira a mercado dia a dia, com orçamento de capital compartilhado.</p>
-          <p><strong>Anualização:</strong> o retorno anual e o Sharpe tratam cada trade como um dia de pregão. A correção é calcular as métricas sobre a curva de patrimônio diária.</p>
-          <p><strong>Sinal da segunda perna:</strong> o resultado da segunda ação tem o sinal invertido, então a posição simulada não fica neutra ao mercado. A correção é ajustar o sinal e criar testes para cada direção de trade.</p>
-          <p>Os resultados corrigidos, fora da amostra, serão publicados aqui. Em finanças quantitativas, um backtest que parece bom demais quase sempre tem um erro.</p>
+        <div>
+          <dt><span class="en">Cointegration</span><span class="pt">Cointegração</span><small>Engle-Granger, p &lt; 0.05</small></dt>
+          <dd class="en">Tests whether the spread between two stocks has a stable level to return to. Two prices can be highly correlated and still drift apart for good.</dd>
+          <dd class="pt">Testa se o spread entre duas ações tem um nível estável para o qual voltar. Dois preços podem ser muito correlacionados e mesmo assim se afastar para sempre.</dd>
         </div>
-      </div>
+        <div>
+          <dt><span class="en">Hurst exponent</span><span class="pt">Expoente de Hurst</span><small>H &lt; 0.5</small></dt>
+          <dd class="en">Below 0.5 a series tends to reverse its moves. Around 0.5 it behaves like a random walk, and there is nothing to bet on.</dd>
+          <dd class="pt">Abaixo de 0,5 a série tende a desfazer seus movimentos. Perto de 0,5 ela se comporta como um passeio aleatório, e não há no que apostar.</dd>
+        </div>
+        <div>
+          <dt><span class="en">Mean crossings</span><span class="pt">Cruzamentos da média</span><small><span class="en">12 or more per year</span><span class="pt">12 ou mais por ano</span></small></dt>
+          <dd class="en">A spread that returns to its average once every two years passes the tests above and is useless for trading.</dd>
+          <dd class="pt">Um spread que volta à média uma vez a cada dois anos passa nos testes acima e não serve para operar.</dd>
+        </div>
+        <div>
+          <dt><span class="en">Tail dependence</span><span class="pt">Dependência de cauda</span><small><span class="en">5% most extreme days</span><span class="pt">5% dos dias mais extremos</span></small></dt>
+          <dd class="en">Keeps pairs whose two stocks also move together on the worst and best days of the market, which is when the hedge is needed. It is the filter that removes the most pairs.</dd>
+          <dd class="pt">Mantém os pares em que as duas ações também andam juntas nos piores e melhores dias do mercado, que é quando a proteção faz falta. É o filtro que mais elimina pares.</dd>
+        </div>
+      </dl>
     </section>
 
+    <section id="method">
+      <div class="num">03</div>
+      <h2><span class="en">Testing without seeing the future</span><span class="pt">Um teste que não enxerga o futuro</span></h2>
+      <p class="en">A backtest is only worth something if every decision uses information that existed at the time. So the test walks through the sample in rounds: pairs are chosen with the two previous years of data and traded during the following six months. Then everything moves six months ahead and the selection starts from scratch.</p>
+      <p class="pt">Um backtest só vale alguma coisa se cada decisão usa informação que existia na época. Por isso o teste percorre a amostra em rodadas: os pares são escolhidos com os dois anos anteriores de dados e operados nos seis meses seguintes. Depois tudo avança seis meses e a seleção recomeça do zero.</p>
+      <figure>
+        <div class="fig" id="fig-windows"></div>
+        <figcaption>
+          <span class="en"><b>Fig. 3</b>Each row is one round. The light bar is the period used to choose the pairs; the dark bar is the period traded with them, followed by the portfolio's return in it. Rounds that lost money are in orange.</span>
+          <span class="pt"><b>Fig. 3</b>Cada linha é uma rodada. A barra clara é o período usado para escolher os pares; a escura é o período operado com eles, seguida do retorno da carteira nele. Rodadas com prejuízo estão em laranja.</span>
+        </figcaption>
+      </figure>
+      <p class="en">Each pair receives 1/<span data-v="pairs"></span> of the capital, divided between the two stocks according to the hedge ratio estimated in the selection period. A signal seen at today's close is executed at tomorrow's close, every order pays <span data-v="cost"></span> in fees and slippage, and the whole portfolio is valued day by day. Trades still open at the end of a round are closed.</p>
+      <p class="pt">Cada par recebe 1/<span data-v="pairs"></span> do capital, dividido entre as duas ações conforme a razão de hedge estimada no período de seleção. Um sinal visto no fechamento de hoje é executado no fechamento de amanhã, cada ordem paga <span data-v="cost"></span> de custos e derrapagem, e a carteira inteira é avaliada dia a dia. Operações ainda abertas no fim da rodada são encerradas.</p>
+    </section>
+
+    <section id="results">
+      <div class="num">04</div>
+      <h2><span class="en">Results</span><span class="pt">Resultados</span></h2>
+      <p class="en">Between <span data-v="trade-start"></span> and <span data-v="trade-end"></span> the portfolio returned <span data-v="annual"></span> per year. It is a small and steady result: positive in each of the five years, though barely in 2018 and 2019, with a worst drop of <span data-v="mdd"></span>, and nearly unrelated to the market (a correlation of <span data-v="corr"></span> with the Ibovespa ETF, BOVA11).</p>
+      <p class="pt">Entre <span data-v="trade-start"></span> e <span data-v="trade-end"></span> a carteira rendeu <span data-v="annual"></span> ao ano. É um resultado pequeno e estável: positivo em cada um dos cinco anos, ainda que por pouco em 2018 e 2019, com queda máxima de <span data-v="mdd"></span>, e quase sem relação com o mercado (correlação de <span data-v="corr"></span> com o ETF do Ibovespa, o BOVA11).</p>
+
+      <div class="tiles">
+        <div class="tile"><span class="en">Annual return</span><span class="pt">Retorno anual</span><b data-v="annual"></b><small><span data-v="total"></span> total</small></div>
+        <div class="tile"><span class="en">Volatility</span><span class="pt">Volatilidade</span><b data-v="vol"></b><small>BOVA11 <span data-v="bova-vol"></span></small></div>
+        <div class="tile"><span class="en">Sharpe ratio</span><span class="pt">Índice de Sharpe</span><b data-v="sharpe"></b><small><span class="en">risk-free rate = 0</span><span class="pt">taxa livre de risco = 0</span></small></div>
+        <div class="tile"><span class="en">Worst drop</span><span class="pt">Queda máxima</span><b data-v="mdd"></b><small>BOVA11 <span data-v="bova-mdd"></span></small></div>
+      </div>
+
+      <figure>
+        <div class="fig" id="fig-equity"></div>
+        <figcaption>
+          <span class="en"><b>Fig. 4</b>Portfolio value over the <span data-v="windows"></span> rounds, all out of sample, after costs. Weekly points.</span>
+          <span class="pt"><b>Fig. 4</b>Valor da carteira ao longo das <span data-v="windows"></span> rodadas, sempre fora da amostra, depois dos custos. Pontos semanais.</span>
+        </figcaption>
+      </figure>
+
+      <p class="en">This is less than Brazilian fixed income paid over the same years, and two things explain most of it. On a typical day only <span data-v="open"></span> of the <span data-v="pairs"></span> pairs had a trade open, so about <span data-v="gross"></span> of the capital was at work, and the rest earns nothing in the simulation. And only <span data-v="reversion"></span> of the trades ended because the spread came back: those gained <span data-v="rev-ret"></span> on average. The others were still open when their round ended and lost <span data-v="end-ret"></span>.</p>
+      <p class="pt">É menos do que a renda fixa brasileira pagou nos mesmos anos, e duas coisas explicam a maior parte disso. Num dia típico só <span data-v="open"></span> dos <span data-v="pairs"></span> pares tinham operação aberta, então cerca de <span data-v="gross"></span> do capital estava trabalhando, e o resto não rende nada na simulação. E só <span data-v="reversion"></span> das operações terminaram porque o spread voltou: essas ganharam <span data-v="rev-ret"></span> em média. As outras ainda estavam abertas quando a rodada acabou e perderam <span data-v="end-ret"></span>.</p>
+
+      <div class="scroll"><table id="table-yearly"></table></div>
+      <p class="tablecap">
+        <span class="en">Return by calendar year. BOVA11 is shown for scale: it is not a fair benchmark for a strategy that holds no net position in the market.</span>
+        <span class="pt">Retorno por ano. O BOVA11 aparece para dar escala: ele não é uma comparação justa para uma estratégia que não fica comprada nem vendida no mercado.</span>
+      </p>
+
+      <figure>
+        <div class="fig" id="fig-hist"></div>
+        <figcaption>
+          <span class="en"><b>Fig. 5</b>The <span data-v="trades"></span> trades. <span data-v="win"></span> of them made money; the average trade returned <span data-v="avgtrade"></span> and half of them lasted more than <span data-v="days"></span> days.</span>
+          <span class="pt"><b>Fig. 5</b>As <span data-v="trades"></span> operações. <span data-v="win"></span> deram lucro; a operação média rendeu <span data-v="avgtrade"></span> e metade delas durou mais de <span data-v="days"></span> dias.</span>
+        </figcaption>
+      </figure>
+
+      <div class="scroll"><table id="table-pairs"></table></div>
+      <p class="tablecap">
+        <span class="en">The five pairs that added the most and the five that took the most, in percentage points of the initial capital, out of <span data-v="distinct"></span> different pairs traded.</span>
+        <span class="pt">Os cinco pares que mais somaram e os cinco que mais tiraram, em pontos percentuais do capital inicial, entre <span data-v="distinct"></span> pares diferentes operados.</span>
+      </p>
+      <p class="en">The table also shows a weakness. Some selected pairs make sense, such as two mall operators or the two share classes of the same company. Many don't: an insurer and a water utility have no reason to stay together. The filters are purely statistical, and with <span data-v="tested"></span> candidates some pairs pass by chance. Restricting candidates to stocks of the same industry is the first thing we would change.</p>
+      <p class="pt">A tabela também mostra uma fraqueza. Alguns pares selecionados fazem sentido, como duas administradoras de shoppings ou as duas classes de ação da mesma empresa. Muitos não: uma seguradora e uma companhia de saneamento não têm por que andar juntas. Os filtros são puramente estatísticos, e com <span data-v="tested"></span> candidatos alguns pares passam por acaso. Restringir os candidatos a ações do mesmo setor é a primeira coisa que mudaríamos.</p>
+    </section>
+
+    <section id="audit">
+      <div class="num">05</div>
+      <h2><span class="en">What the first backtest got wrong</span><span class="pt">O que o primeiro backtest errou</span></h2>
+      <p class="en">The backtest we wrote during the challenge showed a return too high to be true. Before publishing any number we audited the code and found four errors, all of which pushed the result up. The version on this page fixes the four.</p>
+      <p class="pt">O backtest que escrevemos durante o desafio mostrava um retorno alto demais para ser verdade. Antes de divulgar qualquer número auditamos o código e encontramos quatro erros, todos empurrando o resultado para cima. A versão desta página corrige os quatro.</p>
+      <dl class="defs">
+        <div>
+          <dt><span class="en">Selection saw the future</span><span class="pt">A seleção via o futuro</span></dt>
+          <dd class="en">Pairs were chosen with statistics from 2014 to 2020 and then traded inside that same period. <b>Now</b> each round only uses the two years before it.</dd>
+          <dd class="pt">Os pares eram escolhidos com estatísticas de 2014 a 2020 e depois operados dentro desse mesmo período. <b>Agora</b> cada rodada usa só os dois anos anteriores a ela.</dd>
+        </div>
+        <div>
+          <dt><span class="en">Trades compounded in a row</span><span class="pt">Operações compostas em fila</span></dt>
+          <dd class="en">Trades of different pairs that happened at the same time were compounded one after the other, as if each had the whole capital. <b>Now</b> every pair has a fixed slice and the portfolio is valued daily.</dd>
+          <dd class="pt">Operações simultâneas de pares diferentes eram compostas uma depois da outra, como se cada uma tivesse o capital inteiro. <b>Agora</b> cada par tem uma fatia fixa e a carteira é avaliada todo dia.</dd>
+        </div>
+        <div>
+          <dt><span class="en">A trade counted as a day</span><span class="pt">Uma operação contava como um dia</span></dt>
+          <dd class="en">Annual return and Sharpe ratio treated each trade as one trading day. <b>Now</b> both come from the daily value of the portfolio.</dd>
+          <dd class="pt">O retorno anual e o Sharpe tratavam cada operação como um pregão. <b>Agora</b> os dois saem do valor diário da carteira.</dd>
+        </div>
+        <div>
+          <dt><span class="en">Second leg with the wrong sign</span><span class="pt">Segunda perna com sinal trocado</span></dt>
+          <dd class="en">The profit of the second stock was computed with the sign flipped, so the simulated position was not hedged. <b>Now</b> both legs are ordinary share positions, with tests for each direction.</dd>
+          <dd class="pt">O resultado da segunda ação era calculado com o sinal invertido, então a posição simulada não ficava protegida. <b>Agora</b> as duas pernas são posições comuns em ações, com testes para cada direção.</dd>
+        </div>
+      </dl>
+      <p class="en" style="margin-top:22px">To see how much the first error alone is worth, we ran the corrected engine twice, changing only the moment when the pairs are chosen.</p>
+      <p class="pt" style="margin-top:22px">Para ver quanto vale só o primeiro erro, rodamos o motor corrigido duas vezes, mudando apenas o momento em que os pares são escolhidos.</p>
+      <figure>
+        <div class="fig" id="fig-lookahead"></div>
+        <figcaption>
+          <span class="en"><b>Fig. 6</b>Same strategy, same costs. Choosing the pairs with the whole sample gives <span data-v="la-annual"></span> per year and a Sharpe ratio of <span data-v="la-sharpe"></span>; choosing them only with past data gives <span data-v="annual"></span> and <span data-v="sharpe"></span>.</span>
+          <span class="pt"><b>Fig. 6</b>Mesma estratégia, mesmos custos. Escolher os pares com a amostra inteira dá <span data-v="la-annual"></span> ao ano e Sharpe de <span data-v="la-sharpe"></span>; escolher só com dados passados dá <span data-v="annual"></span> e <span data-v="sharpe"></span>.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section id="limits">
+      <div class="num">06</div>
+      <h2><span class="en">What this test doesn't cover</span><span class="pt">O que este teste não cobre</span></h2>
+      <ul class="limits en">
+        <li>B3's historical files bring raw prices. Splits and reverse splits are detected by a rule (a one-day price ratio below 0.6 or above 1.7) and corrected; dividends and small bonus issues are not.</li>
+        <li>Selling short is free in the simulation. There is no stock loan fee and no check that the shares could be borrowed.</li>
+        <li>Idle cash earns nothing. In practice it would be invested at the interbank rate, which would add to the return shown.</li>
+        <li>Thresholds, windows and the number of pairs are those of the original project. None was adjusted after seeing these results.</li>
+        <li>Five years and <span data-v="trades"></span> trades are a small sample. A Sharpe ratio of <span data-v="sharpe"></span> over this period is still within what chance could produce.</li>
+      </ul>
+      <ul class="limits pt">
+        <li>Os arquivos históricos da B3 trazem preços brutos. Desdobramentos e grupamentos são detectados por uma regra (razão de preço de um dia abaixo de 0,6 ou acima de 1,7) e corrigidos; dividendos e bonificações pequenas, não.</li>
+        <li>Vender a descoberto é gratuito na simulação. Não há taxa de aluguel de ações nem verificação de que havia ações para alugar.</li>
+        <li>O caixa parado não rende nada. Na prática ele ficaria aplicado no CDI, o que somaria ao retorno mostrado.</li>
+        <li>Limiares, janelas e número de pares são os do projeto original. Nenhum foi ajustado depois de ver estes resultados.</li>
+        <li>Cinco anos e <span data-v="trades"></span> operações são uma amostra pequena. Um Sharpe de <span data-v="sharpe"></span> nesse período ainda está dentro do que o acaso produziria.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p class="en">Built for the Itaú Asset university Quant challenge. Data: B3 historical quotes (COTAHIST), 2014 to 2020. Every number on this page is produced by <code>python run_walkforward.py</code> in the <a href="https://github.com/fujimoto01/pair-trading">repository</a>. This is a study, not investment advice.</p>
+      <p class="pt">Feito para o desafio universitário Quant da Itaú Asset. Dados: cotações históricas da B3 (COTAHIST), 2014 a 2020. Todos os números desta página saem de <code>python run_walkforward.py</code>, no <a href="https://github.com/fujimoto01/pair-trading">repositório</a>. É um estudo, não uma recomendação de investimento.</p>
+    </footer>
   </main>
 
-  <footer class="footer">
-    <div class="container">
-      <p>Projeto acadêmico — Pair Trading na B3 · UFPR · Desafio Quant Itaú Asset.</p>
-    </div>
-  </footer>
+  <nav class="dock" aria-label="Quick links">
+    <a href="https://fujimoto01.github.io/" title="Vitor Fujimoto" aria-label="Portfolio"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z"/></svg></a>
+    <a href="https://github.com/fujimoto01/pair-trading" title="GitHub" aria-label="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg></a>
+    <span class="sep"></span>
+    <button type="button" class="lang-toggle" aria-label="Switch language" title="EN / PT">PT</button>
+    <button type="button" class="theme" aria-label="Toggle light and dark theme" title="Light / dark">
+      <svg class="sun" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Z"/></svg>
+      <svg class="moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"/></svg>
+    </button>
+  </nav>
 
-  <script src="site/script.js"></script>
+  <script src="site/data.js"></script>
+  <script src="site/app.js"></script>
 </body>
 </html>
